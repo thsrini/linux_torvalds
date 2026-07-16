@@ -227,12 +227,16 @@ static int __cxl_pci_mbox_send_cmd(struct cxl_mailbox *cxl_mbox,
 
 	/* #1 */
 	if (cxl_doorbell_busy(cxlds)) {
-		u64 md_status =
-			readq(cxlds->regs.memdev + CXLMDEV_STATUS_OFFSET);
+		dev_dbg(dev, "Mailbox busy, waiting for doorbell to clear\n");
+		rc = cxl_pci_mbox_wait_for_doorbell(cxlds);
+		if (rc) {
+			u64 md_status =
+				readq(cxlds->regs.memdev + CXLMDEV_STATUS_OFFSET);
 
-		cxl_cmd_err(cxlds->dev, mbox_cmd, md_status,
-			    "mailbox queue busy");
-		return -EBUSY;
+			cxl_cmd_err(cxlds->dev, mbox_cmd, md_status,
+				    "mailbox queue busy");
+			return -EBUSY;
+		}
 	}
 
 	/*
